@@ -1,44 +1,35 @@
 <!DOCTYPE html>
-<html lang="ru">
-<head>
+<html lang="ru"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Галерея Mail.ru Cloud</title>
-  <style>
-    body { font-family: sans-serif; margin:20px; }
-    .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
-    .gallery img { width:100%; border-radius:4px; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
-  </style>
-</head>
-<body>
-  <h1>Галерея из Mail.ru Cloud</h1>
-  <div id="gallery" class="gallery">Загрузка…</div>
+  <title>Галерея Mail.ru — найти album_id</title>
+</head><body>
+  <h1>Поиск album_id</h1>
+  <pre id="info">Идёт запрос…</pre>
 
   <script src="https://connect.mail.ru/js/loader.js"></script>
   <script>
-    // Инициализация JS API
     connectInit({
       app_id: 790871,
       private_key: '5e05423b03d11700e6c17e670ba20a46',
-      scope: 'photos', // доступ к папкам и фото
+      scope: 'photos',
     });
 
     connectEvents(en => {
-      if (en.success) {
-        // Получаем список файлов из публичной папки
-        connect.api('/photos.get', {
-          album_id: 'https://cloud.mail.ru/home/%D0%94%D0%BB%D1%8F%20%D0%9C%D0%B0%D0%BC%D1%8B'
-        }, function(r) {
-          if (r.photos && r.photos.length) {
-            const html = r.photos.map(p => `<img src="${p.src_big}" alt="">`).join("");
-            document.getElementById('gallery').innerHTML = html;
-          } else document.getElementById('gallery').innerText = 'Нет изображений';
-        });
-      } else {
-        document.getElementById('gallery').innerText =
-          'Ошибка авторизации в Mail.ru';
-      }
+      if (!en.success) return document.getElementById('info').innerText = 'Ошибка авторизации';
+
+      // Запрашиваем список всех альбомов
+      connect.api('/photos.getAlbums', {}, function(res) {
+        if (!res.albums) {
+          return document.getElementById('info').innerText = 'Альбомы не найдены';
+        }
+
+        // Выводим информацию по каждому альбому
+        const lines = res.albums.map(a =>
+          `Album "${a.title}" — album_id = ${a.album_id}`
+        );
+        document.getElementById('info').innerText = lines.join('\n');
+      });
     });
   </script>
-</body>
-</html>
+</body></html>
