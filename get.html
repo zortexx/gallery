@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Галерея Mail.ru — найти album_id</title>
+</head><body>
+  <h1>Поиск album_id</h1>
+  <pre id="info">Идёт запрос…</pre>
+
+  <script src="https://connect.mail.ru/js/loader.js"></script>
+  <script>
+    connectInit({
+      app_id: 790871,
+      private_key: '5e05423b03d11700e6c17e670ba20a46',
+      scope: 'photos',
+    });
+
+    connectEvents(en => {
+      if (!en.success) return document.getElementById('info').innerText = 'Ошибка авторизации';
+
+      // Запрашиваем список всех альбомов
+      connect.api('/photos.getAlbums', {}, function(res) {
+        if (!res.albums) {
+          return document.getElementById('info').innerText = 'Альбомы не найдены';
+        }
+
+        // Выводим информацию по каждому альбому
+        const lines = res.albums.map(a =>
+          `Album "${a.title}" — album_id = ${a.album_id}`
+        );
+        document.getElementById('info').innerText = lines.join('\n');
+      });
+    });
+  </script>
+</body></html>
