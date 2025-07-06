@@ -1,35 +1,67 @@
 <!DOCTYPE html>
-<html lang="ru"><head>
+<html lang="ru">
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Галерея Mail.ru — найти album_id</title>
-</head><body>
-  <h1>Поиск album_id</h1>
-  <pre id="info">Идёт запрос…</pre>
+  <title>Mail.ru Cloud Галерея</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    #login_button { margin-bottom: 20px; }
+    .gallery { display: grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
+    .gallery img { width: 100%; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    #albums { margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Галерея из Mail.ru Cloud</h1>
+  <div id="login_button"></div>
+  <div id="albums">Альбомы загружаются…</div>
+  <div id="gallery" class="gallery"></div>
 
   <script src="https://connect.mail.ru/js/loader.js"></script>
   <script>
-    connectInit({
-      app_id: 790871,
-      private_key: '5e05423b03d11700e6c17e670ba20a46',
-      scope: 'photos',
-    });
+    mailru.loader.require('api', function() {
+      mailru.connect.init('790871', '5e05423b03d11700e6c17e670ba20a46');
 
-    connectEvents(en => {
-      if (!en.success) return document.getElementById('info').innerText = 'Ошибка авторизации';
-
-      // Запрашиваем список всех альбомов
-      connect.api('/photos.getAlbums', {}, function(res) {
-        if (!res.albums) {
-          return document.getElementById('info').innerText = 'Альбомы не найдены';
+      mailru.connect.getLoginStatus(function(res) {
+        if (res.is_app_user != 1) {
+          mailru.connect.initButton('login_button', {width: 200, text: 'Войти через Mail.ru'});
+        } else {
+          loadAlbums();
         }
-
-        // Выводим информацию по каждому альбому
-        const lines = res.albums.map(a =>
-          `Album "${a.title}" — album_id = ${a.album_id}`
-        );
-        document.getElementById('info').innerText = lines.join('\n');
       });
     });
+
+    function loadAlbums() {
+      mailru.common.photos.getAlbums(function(res) {
+        if (!res.albums || res.albums.length === 0) {
+          document.getElementById('albums').innerText = 'Альбомы не найдены';
+          return;
+        }
+        const sel = document.createElement('select');
+        sel.id = 'album_select';
+        sel.innerHTML = '<option>— Выберите альбом —</option>' +
+          res.albums.map(a => `<option value="${a.album_id}">${a.title} (ID: ${a.album_id})</option>`).join('');
+        document.getElementById('albums').innerHTML = '';
+        document.getElementById('albums').appendChild(sel);
+        sel.addEventListener('change', () => {
+          const id = sel.value;
+          if (id) loadPhotos(id);
+        });
+      });
+    }
+
+    function loadPhotos(album_id) {
+      document.getElementById('gallery').innerHTML = 'Загрузка изображений…';
+      mailru.common.photos.get({ album_id }, function(r) {
+        if (!r.photos || r.photos.length === 0) {
+          document.getElementById('gallery').innerText = 'Нет изображений в этом альбоме';
+          return;
+        }
+        document.getElementById('gallery').innerHTML =
+          r.photos.map(p => `<img src="${p.src_big}" alt="">`).join('');
+      });
+    }
   </script>
-</body></html>
+</body>
+</html>
