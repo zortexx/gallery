@@ -2,7 +2,7 @@ import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
   const { id } = req.query;
-  const url = `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=${process.env.API_KEY}`;
+  const url = `https://www.googleapis.com/drive/v3/files/${id}?alt=media&key=AIzaSyDiQaHI6YsE_AkWtompKMWhr-zMmnwjMfs`;
   const resp = await fetch(url);
   res.setHeader('Content-Type', resp.headers.get('content-type'));
   res.setHeader('Cache-Control', 'public, max-age=3600');
