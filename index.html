@@ -3,65 +3,50 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Mail.ru Cloud Галерея</title>
+  <title>Галерея из Google Drive</title>
   <style>
-    body { font-family: sans-serif; margin: 20px; }
-    #login_button { margin-bottom: 20px; }
-    .gallery { display: grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
-    .gallery img { width: 100%; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    #albums { margin-bottom: 20px; }
+    body { font-family: sans-serif; margin: 1rem; background: #f9f9f9; }
+    .gallery { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); }
+    .gallery img, .gallery video { width: 100%; height: auto; border-radius: 4px; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
   </style>
 </head>
 <body>
-  <h1>Галерея из Mail.ru Cloud</h1>
-  <div id="login_button"></div>
-  <div id="albums">Альбомы загружаются…</div>
-  <div id="gallery" class="gallery"></div>
+  <h1>Галерея из Google Drive</h1>
+  <div class="gallery" id="gallery">Загрузка...</div>
 
-  <script src="https://connect.mail.ru/js/loader.js"></script>
   <script>
-    mailru.loader.require('api', function() {
-      mailru.connect.init('790871', '5e05423b03d11700e6c17e670ba20a46');
+    const API_KEY = 'AIzaSyDiQaHI6YsE_AkWtompKMWhr-zMmnwjMfs';  // получите в Google Cloud Console
+    const FOLDER_ID = '17_eLgtD0mC71iihLsZNFyg64yC2SGhw8';
 
-      mailru.connect.getLoginStatus(function(res) {
-        if (res.is_app_user != 1) {
-          mailru.connect.initButton('login_button', {width: 200, text: 'Войти через Mail.ru'});
-        } else {
-          loadAlbums();
-        }
-      });
+    async function fetchFiles() {
+      const q = `"${FOLDER_ID}" in parents and trashed = false`;
+      const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType)&key=${API_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      return data.files || [];
+    }
+
+    function createMediaTag(file) {
+      const id = file.id;
+      const name = file.name;
+      const mime = file.mimeType;
+      const url = `https://drive.google.com/uc?export=view&id=${id}`;
+      if (mime.startsWith('image/')) return `<img src="${url}" alt="${name}" loading="lazy">`;
+      if (mime.startsWith('video/')) return `<video src="${url}" controls></video>`;
+      return '';
+    }
+
+    async function initGallery() {
+      const files = await fetchFiles();
+      const gallery = document.getElementById('gallery');
+      if (!files.length) { gallery.innerText = 'Файлы не найдены'; return; }
+      gallery.innerHTML = files.map(f => `<div class="item">${createMediaTag(f)}</div>`).join('');
+    }
+
+    initGallery().catch(err => {
+      console.error(err);
+      document.getElementById('gallery').innerText = 'Ошибка загрузки';
     });
-
-    function loadAlbums() {
-      mailru.common.photos.getAlbums(function(res) {
-        if (!res.albums || res.albums.length === 0) {
-          document.getElementById('albums').innerText = 'Альбомы не найдены';
-          return;
-        }
-        const sel = document.createElement('select');
-        sel.id = 'album_select';
-        sel.innerHTML = '<option>— Выберите альбом —</option>' +
-          res.albums.map(a => `<option value="${a.album_id}">${a.title} (ID: ${a.album_id})</option>`).join('');
-        document.getElementById('albums').innerHTML = '';
-        document.getElementById('albums').appendChild(sel);
-        sel.addEventListener('change', () => {
-          const id = sel.value;
-          if (id) loadPhotos(id);
-        });
-      });
-    }
-
-    function loadPhotos(album_id) {
-      document.getElementById('gallery').innerHTML = 'Загрузка изображений…';
-      mailru.common.photos.get({ album_id }, function(r) {
-        if (!r.photos || r.photos.length === 0) {
-          document.getElementById('gallery').innerText = 'Нет изображений в этом альбоме';
-          return;
-        }
-        document.getElementById('gallery').innerHTML =
-          r.photos.map(p => `<img src="${p.src_big}" alt="">`).join('');
-      });
-    }
   </script>
 </body>
 </html>
