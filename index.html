@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Галерея из Google Drive</title>
   <style>
-    body { font-family: sans-serif; margin: 1rem; background: #f9f9f9; }
-    .gallery { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); }
-    .gallery img, .gallery video { width: 100%; height: auto; border-radius: 4px; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
+    body { font-family:sans-serif; margin:1rem; background:#f9f9f9; }
+    .gallery { display:grid; gap:10px; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); }
+    .gallery img, .gallery video { width:100%; border-radius:4px; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
   </style>
 </head>
 <body>
@@ -15,35 +15,31 @@
   <div class="gallery" id="gallery">Загрузка...</div>
 
   <script>
-    const API_KEY = 'AIzaSyDiQaHI6YsE_AkWtompKMWhr-zMmnwjMfs';  // получите в Google Cloud Console
+    const API_KEY = 'ВАШ_GOOGLE_DRIVE_API_KEY';
     const FOLDER_ID = '17_eLgtD0mC71iihLsZNFyg64yC2SGhw8';
 
     async function fetchFiles() {
       const q = `"${FOLDER_ID}" in parents and trashed = false`;
       const url = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType)&key=${API_KEY}`;
       const res = await fetch(url);
-      const data = await res.json();
-      return data.files || [];
+      return (await res.json()).files || [];
     }
 
-    function createMediaTag(file) {
-      const id = file.id;
-      const name = file.name;
-      const mime = file.mimeType;
-      const url = `https://drive.google.com/uc?export=view&id=${id}`;
-      if (mime.startsWith('image/')) return `<img src="${url}" alt="${name}" loading="lazy">`;
-      if (mime.startsWith('video/')) return `<video src="${url}" controls></video>`;
+    function mediaTag(f) {
+      const url = `/api/proxy?id=${f.id}`;
+      if (f.mimeType.startsWith('image/')) return `<img src="${url}" alt="${f.name}" loading="lazy">`;
+      if (f.mimeType.startsWith('video/')) return `<video src="${url}" controls></video>`;
       return '';
     }
 
-    async function initGallery() {
+    async function init() {
       const files = await fetchFiles();
       const gallery = document.getElementById('gallery');
-      if (!files.length) { gallery.innerText = 'Файлы не найдены'; return; }
-      gallery.innerHTML = files.map(f => `<div class="item">${createMediaTag(f)}</div>`).join('');
+      if (!files.length) return gallery.innerText = 'Файлы не найдены';
+      gallery.innerHTML = files.map(f => `<div class="item">${mediaTag(f)}</div>`).join('');
     }
 
-    initGallery().catch(err => {
+    init().catch(err => {
       console.error(err);
       document.getElementById('gallery').innerText = 'Ошибка загрузки';
     });
